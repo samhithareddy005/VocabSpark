@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VocabSpark | Vocabulary Flashcards</title>
+  <style>
+    :root {
+      --bg: #f5f6ff;
+      --card: #ffffff;
+      --ink: #222446;
+      --muted: #6c6e8a;
+      --primary: #6558d3;
+      --primary-dark: #4b40b0;
+      --border: #e4e5f3;
+      --good: #16845b;
+      --bad: #c74444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(135deg, #f5f6ff, #eef7ff);
+      min-height: 100vh;
+    }
+    header {
+      padding: 22px max(20px, calc((100% - 1000px) / 2));
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .brand { font-size: 1.35rem; font-weight: 800; letter-spacing: -.4px; }
+    .brand span { color: var(--primary); }
+    .status {
+      font-size: .82rem; padding: 8px 12px; border-radius: 999px;
+      background: #fff; border: 1px solid var(--border); color: var(--muted);
+    }
+    main { max-width: 1000px; margin: 0 auto; padding: 12px 20px 50px; }
+    .intro { text-align: center; margin: 14px 0 26px; }
+    .intro h1 { font-size: clamp(1.8rem, 5vw, 2.65rem); margin: 0 0 10px; }
+    .intro p { color: var(--muted); margin: 0; line-height: 1.5; }
+    .tabs { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 22px; }
+    .tab, button {
+      border: 0; border-radius: 12px; padding: 11px 15px; font-weight: 700;
+      cursor: pointer; font-size: .95rem; transition: .15s ease;
+    }
+    .tab { background: #fff; color: var(--muted); border: 1px solid var(--border); }
+    .tab.active, .primary { background: var(--primary); color: #fff; }
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .panel {
+      background: var(--card); border: 1px solid var(--border); border-radius: 22px;
+      padding: clamp(18px, 4vw, 30px); box-shadow: 0 12px 35px rgba(42, 43, 100, .06);
+    }
+    .hidden { display: none !important; }
+    .card-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--muted); font-size: .9rem; }
+    .progress { height: 7px; background: #ececf8; border-radius: 99px; overflow: hidden; margin: 14px 0 22px; }
+    .progress-bar { height: 100%; width: 0%; background: var(--primary); transition: width .2s; }
+    .flashcard {
+      width: 100%; min-height: 250px; padding: 28px 20px; border: 2px dashed #d9d6fb;
+      border-radius: 18px; background: linear-gradient(135deg, #fbfaff, #f5f8ff);
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      text-align: center; cursor: pointer;
+    }
+    .eyebrow { color: var(--primary); font-size: .8rem; text-transform: uppercase; font-weight: 800; letter-spacing: 1.6px; }
+    .word { font-size: clamp(2rem, 7vw, 3.3rem); margin: 14px 0; overflow-wrap: anywhere; }
+    .meaning { max-width: 600px; color: var(--muted); font-size: 1.08rem; line-height: 1.6; }
+    .example { margin-top: 12px; color: #55577b; font-style: italic; line-height: 1.5; }
+    .actions { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    .secondary { background: #f0efff; color: var(--primary-dark); }
+    .outline { background: white; color: var(--ink); border: 1px solid var(--border); }
+    .danger { color: var(--bad); background: #fff0f0; }
+    .search-row { display: flex; gap: 10px; margin-bottom: 18px; }
+    input, textarea {
+      width: 100%; padding: 12px 13px; border: 1px solid #dfe0ef; border-radius: 11px;
+      font: inherit; color: var(--ink); background: white;
+    }
+    input:focus, textarea:focus { outline: 2px solid #d5d0ff; border-color: var(--primary); }
+    .word-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+    .word-item { border: 1px solid var(--border); border-radius: 14px; padding: 15px; }
+    .word-item h3 { margin: 0 0 7px; }
+    .word-item p { color: var(--muted); line-height: 1.45; margin: 0 0 10px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+    .field { display: flex; flex-direction: column; gap: 7px; }
+    .field.full { grid-column: 1 / -1; }
+    label { font-weight: 700; font-size: .9rem; }
+    .notice { color: var(--muted); font-size: .88rem; line-height: 1.5; margin-top: 14px; }
+    .message { min-height: 22px; margin-top: 12px; font-size: .92rem; }
+    .quiz-question { font-size: 1.35rem; line-height: 1.45; margin: 12px 0 20px; }
+    .options { display: grid; gap: 10px; }
+    .option { text-align: left; background: white; border: 1px solid var(--border); color: var(--ink); }
+    .option.correct { background: #eaf8f1; border-color: #81c9a8; }
+    .option.incorrect { background: #fff0f0; border-color: #e4a0a0; }
+    footer { text-align: center; color: var(--muted); font-size: .85rem; padding: 0 20px 28px; }
+    @media (max-width: 600px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .search-row { flex-direction: column; }
+      .flashcard { min-height: 230px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">Vocab<span>Spark</span></div>
+    <div class="status" id="connectionStatus">Starting app…</div>
+  </header>
+
+  <main>
+    <section class="intro">
+      <h1>Build your vocabulary, one card at a time.</h1>
+      <p>Learn useful English words, revise meanings, and test what you know.</p>
+    </section>
+
+    <nav class="tabs" aria-label="App sections">
+      <button class="tab active" data-view="learn">📚 Learn</button>
+      <button class="tab" data-view="words">🔎 Word Library</button>
+      <button class="tab" data-view="add">＋ Add Word</button>
+      <button class="tab" data-view="quiz">✓ Quiz</button>
+    </nav>
+
+    <section class="panel view" id="learnView">
+      <div class="card-top">
+        <span id="cardCount">Card 1 of 10</span>
+        <span id="knownCount">Words in deck: 10</span>
+      </div>
+      <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+      <button class="flashcard" id="flashcard" aria-label="Reveal flashcard meaning">
+        <span class="eyebrow" id="cardLabel">English word</span>
+        <h2 class="word" id="cardWord">Abundant</h2>
+        <p class="meaning" id="cardMeaning">Tap the card to reveal the meaning.</p>
+        <p class="example hidden" id="cardExample"></p>
+      </button>
+      <div class="actions">
+        <button class="outline" id="previousBtn">← Previous</button>
+        <button class="secondary" id="revealBtn">Reveal meaning</button>
+        <button class="primary" id="nextBtn">Next →</button>
+      </div>
+      <div class="message" id="learnMessage" role="status"></div>
+    </section>
+
+    <section class="panel view hidden" id="wordsView">
+      <h2>Word library</h2>
+      <div class="search-row">
+        <input id="searchInput" type="search" placeholder="Search word or meaning…" aria-label="Search vocabulary" />
+      </div>
+      <div class="word-list" id="wordList"></div>
+      <p class="notice">Your vocabulary appears here. Add new words using the “Add Word” tab.</p>
+    </section>
+
+    <section class="panel view hidden" id="addView">
+      <h2>Add a vocabulary word</h2>
+      <form id="addForm">
+        <div class="form-grid">
+          <div class="field">
+            <label for="newWord">Word *</label>
+            <input id="newWord" required maxlength="60"  />
+          </div>
+          <div class="field">
+            <label for="newMeaning">Meaning *</label>
+            <input id="newMeaning" required maxlength="180"  />
+          </div>
+          <div class="field full">
+            <label for="newExample">Example sentence</label>
+            <textarea id="newExample" rows="2" maxlength="250" ></textarea>
+          </div>
+        </div>
+        <div class="actions" style="justify-content:flex-start">
+          <button class="primary" type="submit">Save word</button>
+          <button class="outline" type="reset">Clear form</button>
+        </div>
+        <div class="message" id="addMessage" role="status"></div>
+      </form>
+      <p class="notice">If Firebase is configured, the word is saved to Firestore. Before Firebase setup, the app runs in demo mode using this browser’s local storage.</p>
+    </section>
+
+    <section class="panel view hidden" id="quizView">
+      <div class="card-top"><span>Vocabulary quiz</span><span id="quizScore">Score: 0</span></div>
+      <h2 id="quizTitle">What does this word mean?</h2>
+      <p class="quiz-question" id="quizWord">Abundant</p>
+      <div class="options" id="quizOptions"></div>
+      <div class="message" id="quizMessage" role="status"></div>
+      <div class="actions">
+        <button class="primary" id="nextQuizBtn">Next question →</button>
+        <button class="outline" id="restartQuizBtn">Restart quiz</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>VocabSpark · Build your Vocabulary</footer>
+
+  <script type="module">
+    const firebaseConfig = {
+      apiKey: "AIzaSyBWa8b3KzUzH94n1Qvdz6txjA0CVK0A9PI",
+    authDomain: "vocabspark-ccdeb.firebaseapp.com",
+    projectId: "vocabspark-ccdeb",
+    storageBucket: "vocabspark-ccdeb.firebasestorage.app",
+    messagingSenderId: "253026509132",
+    appId: "1:253026509132:web:827522cde950b721296fe9"
+  };
+
+    const starterWords = [
+      { word: "Abundant", meaning: "Available in large quantities; plentiful.", example: "The garden had abundant flowers." },
+      { word: "Benevolent", meaning: "Kind and generous toward others.", example: "The benevolent woman helped her neighbors." },
+      { word: "Candid", meaning: "Honest and direct.", example: "Please give me your candid opinion." },
+      { word: "Diligent", meaning: "Hardworking and careful.", example: "The diligent student revised every day." },
+      { word: "Eloquent", meaning: "Fluent and persuasive in speaking or writing.", example: "He gave an eloquent speech." },
+      { word: "Fragile", meaning: "Easily broken or damaged.", example: "Handle the fragile glass carefully." },
+      { word: "Genuine", meaning: "Real, authentic, or sincere.", example: "Her smile was genuine." },
+      { word: "Hostile", meaning: "Unfriendly or aggressive.", example: "They received a hostile response." },
+      { word: "Inevitable", meaning: "Certain to happen; unavoidable.", example: "Change is inevitable." },
+      { word: "Optimistic", meaning: "Hopeful about the future.", example: "She remained optimistic about the result." }
+    ];
+
+    let words = [];
+    let currentIndex = 0;
+    let revealed = false;
+    let quizAnswer = "";
+    let quizScore = 0;
+    let quizAnswered = false;
+    let quizQuestionNumber = 0;
+    let firestore = null;
+    let collectionRef = null;
+    let useCloud = false;
+
+    const $ = (id) => document.getElementById(id);
+    const connectionStatus = $("connectionStatus");
+
+    
+    const configReady = firebaseConfig.apiKey !== "PASTE_API_KEY_HERE"
+      && firebaseConfig.projectId !== "PASTE_PROJECT_ID_HERE"
+      && firebaseConfig.appId !== "PASTE_APP_ID_HERE";
+
+    if (configReady) {
+      try {
+        const [{ initializeApp }, { getFirestore, collection, getDocs, addDoc }, { getAuth, signInAnonymously }] = await Promise.all([
+          import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"),
+          import("https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js"),
+          import("https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js")
+        ]);
+        const app = initializeApp(firebaseConfig);
+        const auth=getAuth(app);
+        await signInAnonymously(auth);
+        firestore = getFirestore(app);
+        collectionRef = collection(firestore, "vocabulary");
+        window.cloudFns = { getDocs, addDoc };
+        useCloud = true;
+        connectionStatus.textContent = "☁ Firebase connected";
+      } catch (error) {
+        console.error(error);
+        connectionStatus.textContent = "Demo mode · Firebase connection failed";
+      }
+    } else {
+      connectionStatus.textContent = "Demo mode · local browser storage";
+    }
+
+    async function loadWords() {
+      if (useCloud) {
+        try {
+          const snapshot = await window.cloudFns.getDocs(collectionRef);
+          if (!snapshot.empty) {
+            words = [ ...new Map(snapshot.docs.map(doc => {const data = doc.data();
+               return [data.word.trim().toLowerCase(), { id: doc.id, ...data }];
+          })
+  ).values()
+].sort((a, b) => a.word.localeCompare(b.word));
+          } else {
+            
+            for (const item of starterWords) {
+              await window.cloudFns.addDoc(collectionRef, item);
+            }
+            const seeded = await window.cloudFns.getDocs(collectionRef);
+            words = [
+  ...new Map(
+    seeded.docs.map(doc => {
+      const data = doc.data();
+      return [data.word.trim().toLowerCase(), { id: doc.id, ...data }];
+    })
+  ).values()
+].sort((a, b) => a.word.localeCompare(b.word));
+          }
+          connectionStatus.textContent = "☁ Firebase connected";
+          return;
+        } catch (error) {
+          console.error(error);
+          connectionStatus.textContent = "Firebase error · check setup/rules";
+        }
+      }
+      try {
+        const saved = localStorage.getItem("vocabspark_words");
+        words = saved ? JSON.parse(saved) : [...starterWords];
+      } catch {
+        words = [...starterWords];
+      }
+      if (!Array.isArray(words) || words.length === 0) words = [...starterWords];
+      renderAll();
+    }
+
+    function saveLocalWords() {
+      try { localStorage.setItem("vocabspark_words", JSON.stringify(words)); } catch (e) { console.warn(e); }
+    }
+
+    function renderFlashcard() {
+      if (!words.length) {
+        $("cardWord").textContent = "No words yet";
+        $("cardLabel").textContent = "Add a word";
+        $("cardMeaning").textContent = "Open Add Word to create your first card.";
+        $("cardExample").classList.add("hidden");
+        $("cardCount").textContent = "Card 0 of 0";
+        $("progressBar").style.width = "0%";
+        return;
+      }
+      currentIndex = (currentIndex + words.length) % words.length;
+      const item = words[currentIndex];
+      $("cardWord").textContent = item.word;
+      $("cardLabel").textContent = revealed ? "Meaning" : "English word";
+      $("cardMeaning").textContent = revealed ? item.meaning : "Tap the card or Reveal meaning to see the definition.";
+      $("cardExample").textContent = item.example ? `Example: ${item.example}` : "";
+      $("cardExample").classList.toggle("hidden", !revealed || !item.example);
+      $("cardCount").textContent = `Card ${currentIndex + 1} of ${words.length}`;
+      $("knownCount").textContent = `Words in deck: ${words.length}`;
+      $("progressBar").style.width = `${((currentIndex + 1) / words.length) * 100}%`;
+    }
+
+    function renderWordList(filter = "") {
+      const list = $("wordList");
+      const query = filter.trim().toLowerCase();
+      const matches = words.filter(item =>
+        item.word.toLowerCase().includes(query) || item.meaning.toLowerCase().includes(query)
+      );
+      list.replaceChildren();
+      if (!matches.length) {
+        const p = document.createElement("p");
+        p.textContent = "No matching words found.";
+        list.appendChild(p);
+        return;
+      }
+      matches.forEach(item => {
+        const card = document.createElement("article");
+        card.className = "word-item";
+        const heading = document.createElement("h3");
+        heading.textContent = item.word;
+        const meaning = document.createElement("p");
+        meaning.textContent = item.meaning;
+        card.append(heading, meaning);
+        if (item.example) {
+          const example = document.createElement("p");
+          example.textContent = `Example: ${item.example}`;
+          card.appendChild(example);
+        }
+        list.appendChild(card);
+      });
+    }
+
+    function renderAll() {
+      renderFlashcard();
+      renderWordList($("searchInput").value);
+      $("quizScore").textContent = `Score: ${quizScore}`;
+    }
+
+    function showView(viewName) {
+      document.querySelectorAll(".view").forEach(view => view.classList.add("hidden"));
+      $(`${viewName}View`).classList.remove("hidden");
+      document.querySelectorAll(".tab").forEach(tab => tab.classList.toggle("active", tab.dataset.view === viewName));
+      if (viewName === "quiz") startQuizQuestion();
+    }
+
+    document.querySelectorAll(".tab").forEach(button => {
+      button.addEventListener("click", () => showView(button.dataset.view));
+    });
+
+    function toggleReveal() {
+      revealed = !revealed;
+      $("revealBtn").textContent = revealed ? "Hide meaning" : "Reveal meaning";
+      renderFlashcard();
+      $("revealBtn").textContent = revealed ? "Hide meaning" : "Reveal meaning";
+    }
+    $("flashcard").addEventListener("click", toggleReveal);
+    $("revealBtn").addEventListener("click", toggleReveal);
+    $("previousBtn").addEventListener("click", () => { currentIndex--; revealed = false; renderFlashcard(); $("revealBtn").textContent = "Reveal meaning"; });
+    $("nextBtn").addEventListener("click", () => { currentIndex++; revealed = false; renderFlashcard(); $("revealBtn").textContent = "Reveal meaning"; });
+    $("searchInput").addEventListener("input", event => renderWordList(event.target.value));
+
+    $("addForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const item = {
+        word: $("newWord").value.trim(),
+        meaning: $("newMeaning").value.trim(),
+        example: $("newExample").value.trim()
+      };
+      if (!item.word || !item.meaning) return;
+      $("addMessage").textContent = "Saving…";
+      try {
+        if (useCloud) {
+          const result = await window.cloudFns.addDoc(collectionRef, item);
+          words.push({ id: result.id, ...item });
+        } else {
+          words.push({ id: `local-${Date.now()}`, ...item });
+          saveLocalWords();
+        }
+        words.sort((a, b) => a.word.localeCompare(b.word));
+        currentIndex = Math.max(0, words.findIndex(w => w.word.toLowerCase() === item.word.toLowerCase()));
+        revealed = false;
+        renderAll();
+        $("addForm").reset();
+        $("addMessage").textContent = useCloud ? "Word saved to Firebase Firestore!" : "Word saved in this browser (demo mode).";
+      } catch (error) {
+        console.error(error);
+        $("addMessage").textContent = "Could not save. Check your Firebase setup and Firestore rules.";
+      }
+    });
+
+    function startQuizQuestion() {
+      if (words.length < 2) {
+        $("quizWord").textContent = "Add at least two words to start the quiz.";
+        $("quizOptions").replaceChildren();
+        return;
+      }
+      quizAnswered = false;
+      quizQuestionNumber++;
+      const correct = words[Math.floor(Math.random() * words.length)];
+      quizAnswer = correct.meaning;
+      $("quizTitle").textContent = `Question ${quizQuestionNumber}: Choose the correct meaning`;
+      $("quizWord").textContent = correct.word;
+      $("quizMessage").textContent = "";
+      const others = words.filter(w => w.meaning !== correct.meaning);
+      const shuffledOthers = [...others].sort(() => Math.random() - 0.5).slice(0, 3);
+      const options = [correct, ...shuffledOthers].sort(() => Math.random() - 0.5);
+      const container = $("quizOptions");
+      container.replaceChildren();
+      options.forEach(option => {
+        const button = document.createElement("button");
+        button.className = "option";
+        button.textContent = option.meaning;
+        button.addEventListener("click", () => {
+          if (quizAnswered) return;
+          quizAnswered = true;
+          if (option.meaning === quizAnswer) {
+            quizScore++;
+            button.classList.add("correct");
+            $("quizMessage").textContent = "Correct! Great job.";
+            $("quizMessage").style.color = "var(--good)";
+          } else {
+            button.classList.add("incorrect");
+            $("quizMessage").textContent = `Not quite. Correct answer: ${quizAnswer}`;
+            $("quizMessage").style.color = "var(--bad)";
+            [...container.children].forEach(b => { if (b.textContent === quizAnswer) b.classList.add("correct"); });
+          }
+          $("quizScore").textContent = `Score: ${quizScore}`;
+        });
+        container.appendChild(button);
+      });
+    }
+    $("nextQuizBtn").addEventListener("click", startQuizQuestion);
+    $("restartQuizBtn").addEventListener("click", () => { quizScore = 0; quizQuestionNumber = 0; $("quizScore").textContent = "Score: 0"; startQuizQuestion(); });
+
+    await loadWords();
+    renderAll();
+  </script>
+</body>
+</html>

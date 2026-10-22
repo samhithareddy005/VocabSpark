@@ -1,0 +1,10 @@
+{
+  "hosting": {
+    "public": "vocabulary_flashcard_app/public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}
